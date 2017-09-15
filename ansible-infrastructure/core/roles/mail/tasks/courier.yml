@@ -1,0 +1,45 @@
+# courier.yml - Install courier-imapd.
+---
+- name: install courier
+  apt:
+    name: courier-imap
+    state: latest
+  become: yes
+
+- name: install gamin
+  apt:
+    name: gamin
+    state: latest
+  become: yes
+
+- name: create Maildir structure for mgmtadmin
+  raw: mkdir ~mgmtadmin/Maildir && mkdir ~mgmtadmin/Maildir/cur && mkdir ~mgmtadmin/Maildir/new && mkdir ~mgmtadmin/Maildir/tmp
+  become: yes
+
+- name: create Maildir structure in /etc/skel
+  raw: mkdir /etc/skel/Maildir && mkdir /etc/skel/Maildir/cur && mkdir /etc/skel/Maildir/new && mkdir /etc/skel/Maildir/tmp
+  become: yes
+
+- name: recursively chown mgmtadmin's Maildir
+  file:
+    path: /home/mgmtadmin/Maildir
+    owner: mgmtadmin
+    group: mgmtadmin
+    recurse: yes
+  become: yes
+
+# For some reason, in Debian, the courier-imap package depends on exim4, which
+# is decidedly not Postfix. Make sure it's not running and disable it, otherwise
+# it will get in the way of Postfix.
+
+- name: make sure exim4 isn't running
+  systemd:
+    name: exim4
+    state: stopped
+  become: yes
+
+- name: make sure exim4 is disabled
+  systemd:
+    name: exim4
+    enabled: no
+  become: yes

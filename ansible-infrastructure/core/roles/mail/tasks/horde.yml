@@ -1,0 +1,195 @@
+# horde.yml - Install Horde Webmail Groupware 5.2.16, with Horde_Crypt-2.7.5.
+---
+- name: install Apache
+  apt:
+    name: apache2
+    state: present
+  become: yes
+
+- name: install PHP
+  apt:
+    name: php5
+    state: present
+  become: yes
+
+- name: install php5-mysql
+  apt:
+    name: php5-mysql
+    state: present
+  become: yes
+
+- name: install pear package manager
+  apt:
+    name: php-pear
+    state: present
+  become: yes
+
+# In some minimal Debian installs, ca-certificates is not included by default.
+# Horde's PEAR server redirects http to https, so we need to use tls.
+
+- name: install ca-certificates
+  apt:
+    name: ca-certificates
+    state: present
+  become: yes
+
+- name: install mysql
+  apt:
+    name: mysql-server
+    state: present
+  become: yes
+
+- name: restart apache
+  systemd:
+    name: apache2
+    state: restarted
+  become: yes
+
+- name: register horde pear channel
+  command: pear channel-discover pear.horde.org
+  become: yes
+
+# These steps take a really long time. If Ansible is hanging on these steps,
+# just be patient.
+
+- name: install Horde
+  pear:
+    name: horde/horde_role
+    state: present
+  become: yes
+
+- name: run init script for horde_role
+  command: echo "/var/www/html" | pear run-scripts horde/horde_role
+
+- name: install Horde_Crypt-2.7.5
+  pear:
+    name: horde/Horde_Crypt-2.7.5
+    state: present
+  become: yes
+
+- name: install Horde Groupware Webmail 5.2.16
+  pear:
+    name: horde/webmail-5.2.16
+    state: present
+  become: yes
+
+- name: install python-mysqldb
+  apt:
+    name: python-mysqldb
+    state: present
+  become: yes
+
+- name: create horde database
+  mysql_db:
+    name: horde
+    state: present
+    login_user: root
+
+- name: change mysql root password
+  mysql_user:
+    name: root
+    password: toor
+    state: present
+    login_user: root
+
+- name: install python-pip
+  apt:
+    name: python-pip
+    state: present
+  become: yes
+
+- name: install pexpect
+  pip:
+    name: pexpect
+    state: present
+  become: yes
+
+# The webmail-install script Horde provides is not great. This expect script
+# will answer all of the questions successfully, but for some reason it still
+# failed every time even though the error output clearly showed the script
+# was successfully executed. This is why ignore_errors is used in this task.
+
+- name: run webmail-install
+  expect:
+    command: webmail-install
+    echo: yes
+    responses:
+      'Type your choice \[\]: ':
+        - "mysqli"
+        - "false"
+      'Username to connect to the database as\* \[\] ': "root"
+      'Password to connect with ': "toor"
+      'Type your choice \[unix\]: ': "unix"
+      'Location of UNIX socket \[\] ': ""
+      'Database name to use\* \[\] ': "horde"
+      'Internally used charset\* \[utf-8\] ': ""
+      'Use SSL to connect to the server\?': "false"
+      'Type your choice \[false\]': ""
+      'Type your choice \[0\]': ""
+      'Specify an existing mail user who you want to(.*)': "mgmtadmin"
+      'Should Horde log all queries(.*)': "0"
+    timeout: 60
+  become: yes
+  ignore_errors: yes
+
+- name: move source from install location to /var/www/html
+  command: mv /usr/share/php/www/horde /var/www/html/
+  become: yes
+
+- name: change file ownership
+  file:
+    path: /var/www/html/horde
+    owner: www-data
+    group: www-data
+    recurse: yes
+  become: yes
+
+- name: copy backends.php
+  copy:
+    src: ../files/backends.php
+    dest: /var/www/html/horde/imp/config
+    owner: www-data
+    group: www-data
+    force: yes
+  become: yes
+
+# Things break if you just copy conf.php directly over. We only really have
+# a few changes to make, so we can just edit the file live.
+
+- name: switch mailer type to smtp
+  replace:
+    path: /var/www/html/horde/config/conf.php
+    regexp: "\\$conf\\['mailer'\\]\\['type'\\] = 'sendmail';"
+    replace: "$conf['mailer']['type'] = 'smtp';"
+  become: yes
+
+- name: add host param
+  blockinfile:
+    path: /var/www/html/horde/config/conf.php
+    block: "$conf['mailer']['params']['host'] = 'localhost';"
+  become: yes
+
+- name: add gnupg block
+  blockinfile:
+    path: /var/www/html/horde/config/conf.php
+    block: "$conf['gnupg']['path'] = '/usr/bin/gpg';"
+  become: yes
+
+- name: restart Apache (since we modified the horde config)
+  systemd:
+    name: apache2
+    state: restarted
+  become: yes
+
+# Changing hostname on Debian minimal doesn't work, since it requires dbus.
+
+- name: install dbus
+  apt:
+    name: dbus
+    state: present
+  become: yes
+
+- name: change hostname
+  hostname:
+    name: mail
+  become: yes

@@ -1,0 +1,12 @@
+# update-dns.yml - This include file modifies a host's DNS configuration to
+# point at the IP specified in the inventory file.
+---
+- name: make sure NetworkManager is off
+  service: state=stopped name=NetworkManager
+  # Minimal installs do not include NetworkManager and error, if NetworkManager
+  # isn't on the system, then we don't need to stop it
+  ignore_errors: yes
+
+- name: change /etc/resolv.conf
+  raw: echo "nameserver {{nameserver_ip}}" > /etc/resolv.conf
+  become: yes

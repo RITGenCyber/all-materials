@@ -1,0 +1,34 @@
+# main.yml - Sets up the Windows systems by adding the hospital users and
+# updating the DNS config.
+---
+- name: upload csv
+  win_copy:
+    src: ../files/user-create.csv
+    dest: C:\user-create.csv
+
+- name: run script
+  script: ../files/Add-Users.ps1
+
+- name: delete csv
+  win_file:
+    path: C:\user-create.csv
+    state: absent
+
+- name: enable rdp
+  win_regedit:
+    path: 'hklm:\system\currentcontrolset\control\terminal server'
+    name: fDenyTSConnections
+    type: dword
+    data: 0
+
+- name: disable firewall
+  win_shell: "netsh advfirewall set allprofiles state off"
+
+# When AD is setup and the hosts are joined to the domain, they automatically
+# switch to using the domain profile. This should allow RDP to still work after
+# the hosts are joined to the domain.
+
+- name: allow rdp through firewall
+  win_shell: "netsh advfirewall firewall set rule group='remote desktop' new enable=Yes"
+
+- include: update-dns.yml

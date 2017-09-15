@@ -1,0 +1,25 @@
+# main.yml - Promote Administrator accounts for the nursing department.
+---
+- name: promote floor manager
+  win_user:
+    name: ffinch
+    groups: Administrators
+    groups_action: add
+
+- name: promote nursing user
+  win_user:
+    name: NRSAdmin
+    groups: Administrators
+    groups_action: add
+
+- name: promote head nurse
+  win_user:
+    name: eerickson
+    groups: Administrators
+    groups_action: add
+
+- name: change hostname
+  win_shell: Rename-Computer floor{{ floornumber }}-nurse-a
+
+- name: restart host
+  win_reboot:

@@ -1,0 +1,19 @@
+# main.yml - Promote Administrator accounts for the management department.
+---
+- name: promote floor manager
+  win_user:
+    name: ffinch
+    groups: Administrators
+    groups_action: add
+
+- name: promote management user
+  win_user:
+    name: mgmtadmin
+    groups: Administrators
+    groups_action: add
+
+- name: rename host
+  win_shell: Rename-Computer floor{{ floornumber }}-mgmt
+
+- name: restart host
+  win_reboot:

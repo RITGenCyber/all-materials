@@ -1,0 +1,6 @@
+# billing.yml - map the billing role to the billing playbook.
+# Billing - Windows 10, promotes BillAdmin and ffinch
+---
+- hosts: billing
+  roles:
+    - billing

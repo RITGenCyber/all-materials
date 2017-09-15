@@ -1,0 +1,57 @@
+# main.yml - The main playbook to build the nameserver role.
+#
+# This playbook is designed to be run on a CentOS 7 system.
+# This playbook requires the -K flag.
+---
+- name: install named
+  yum:
+    name: bind
+    state: latest
+    update_cache: yes
+  become: true
+
+- name: copy config files over
+  copy:
+    src: ../files/
+    dest: /etc
+    owner: root
+    group: named
+  become: true
+
+- name: relocate db file to /var/named
+  command: mv /etc/db.metropolis-general.com /var/named/
+  become: true
+
+- name: start named if it's not already started
+  systemd:
+    name: named
+    state: started
+  become: true
+
+- name: enable named so it comes up on boot
+  systemd:
+    name: named
+    enabled: yes
+  become: true
+
+- name: stop firewalld
+  systemd:
+    name: firewalld
+    state: stopped
+  become: true
+
+- name: disable firewalld
+  systemd:
+    name: firewalld
+    enabled: no
+  become: true
+
+- name: flush iptables
+  iptables:
+    flush: yes
+  become: yes
+
+- name: change hostname
+  hostname:
+    name: ns
+  become: yes

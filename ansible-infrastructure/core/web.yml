@@ -1,0 +1,7 @@
+# web.yml - Map the web group to the web role.
+# This playbook must be run with the -K flag.
+---
+- hosts: web
+  roles:
+    - web
+    - common

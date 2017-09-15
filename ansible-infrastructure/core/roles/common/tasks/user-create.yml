@@ -1,0 +1,18 @@
+# user_create.yml - create the accounts for the hospital's staff on the Linux
+# systems.
+---
+
+- name: upload the csv
+  copy:
+    src: ../files/user-create.csv
+    dest: /tmp/user-create.csv
+
+- name: run the user create script
+  script: ../files/user-create.sh
+  become: yes
+
+- name: delete the csv
+  file:
+    path: /tmp/user-create.csv
+    state: absent
+  become: yes

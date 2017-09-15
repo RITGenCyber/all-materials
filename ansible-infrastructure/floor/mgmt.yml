@@ -1,0 +1,6 @@
+# mgmt.yml - map the mgmt role to the mgmt playbook.
+# Mgmt - Windows 10, promotes ffinch
+---
+- hosts: mgmt
+  roles:
+    - mgmt

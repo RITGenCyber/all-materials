@@ -1,0 +1,7 @@
+# nameserver.yml - Map the nameserver group to the nameserver role.
+# This playbook must be run with the -K flag.
+---
+- hosts: nameserver
+  roles:
+    - nameserver
+    - common
